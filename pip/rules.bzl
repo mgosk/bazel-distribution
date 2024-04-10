@@ -106,6 +106,8 @@ def _assemble_pip_impl(ctx):
     args.add('--package_root', ctx.build_file_path.rsplit('/', 1)[0])
     args.add('--readme', ctx.file.long_description_file.path)
     args.add('--suffix', ctx.attr.suffix)
+    args.add_all(ctx.attr.strip_path_prefixes, format_each = "--strip_path_prefixes=%s")
+
 
     # Final 'setup.py' is generated in 2 steps
     setup_py = ctx.actions.declare_file("setup" + ctx.attr.suffix + ".py")
@@ -294,6 +296,10 @@ assemble_pip = rule(
         ),
         "entry_points": attr.string_list_dict(
             doc = "entry_points for setuptools."
+        ),
+        "strip_path_prefixes": attr.string_list(
+            default = [],
+            doc = "path prefixes to strip from files added to the generated package",
         ),
         "_setup_py_template": attr.label(
             allow_single_file = True,

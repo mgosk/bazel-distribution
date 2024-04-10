@@ -49,6 +49,12 @@ def remove_file_suffix(file: str, suffix: str) -> str:
     return path + ext
 
 
+def remove_path_prefixes(file: str, prefixes: List[str]) -> str:
+    for prefix in prefixes:
+        if file.startswith(prefix):
+            return file[len(prefix):]
+    return file
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--output_sdist', help="Output targz archive")
 parser.add_argument('--output_wheel', help="Output wheel archive")
@@ -60,7 +66,14 @@ parser.add_argument('--files', nargs='+', help='Python files to pack into archiv
 parser.add_argument('--data_files', nargs='+', default=[], help='Data files to pack into archive')
 parser.add_argument('--imports', nargs='+', help='Folders considered to be source code roots')
 parser.add_argument('--suffix', help="Suffix that has to be removed from the filenames")
-
+parser.add_argument(
+    "--strip_path_prefixes",
+    type=str,
+    action="append",
+    default=[],
+    help="Path prefix to be stripped from input package files' path. "
+    "Can be supplied multiple times. Evaluated in order.",
+)
 args = parser.parse_args()
 
 # absolutize the path
@@ -95,6 +108,9 @@ for input_file in args.files + args.data_files:
     # Remove python version suffix from the file name
     packaged_file = remove_file_suffix(packaged_file, args.suffix)
 
+    # Remove path prefixes if needed
+    packaged_file = remove_path_prefixes(packaged_file, args.strip_path_prefixes)
+
     for _imp in args.imports:
         match = _imp.match(packaged_file)
         if match:
@@ -107,6 +123,7 @@ for input_file in args.files + args.data_files:
     except OSError:
         # directory already exists
         pass
+
     shutil.copy(input_file, os.path.join(pkg_dir, packaged_file))
 
 # MANIFEST.in is needed for data files that are not included in version control
